@@ -1,0 +1,120 @@
+services:
+  redis:
+    container_name: "dksh_datahub_redis_db"
+    image: "redis:7-alpine"
+    labels:
+      tag: "database"
+    env_file:
+      - .env
+    environment:
+      REDIS_PORT: ${REDIS_PORT}
+    ports:
+      - ${REDIS_PORT}:6379
+    volumes:
+      - ./configs/redis/redis.conf:/usr/local/etc/redis/redis.conf
+      - redis_data:/data
+    networks:
+      - db_network
+    command: >
+      redis-server /usr/local/etc/redis/redis.conf --port ${REDIS_PORT}
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  web:
+    container_name: "dksh_datahub_celery_app"
+    user: celeryuser
+    build:
+      context: .
+      dockerfile: fastapi_Dockerfile
+      args:
+        ARG_ENV: ${ENVIRONMENT}
+    labels:
+      tag: "web_app"
+    ports:
+      - ${APP_PORT}:${APP_PORT}
+    env_file:
+      - .env
+    networks:
+      - web_network
+      - db_network
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  worker:
+    container_name: "dksh_datahub_worker"
+    user: celeryuser
+    build:
+      context: .
+      dockerfile: worker_Dockerfile
+      args:
+        ARG_ENV: ${ENVIRONMENT}
+    labels:
+      tag: "celery_worker"
+    env_file:
+      - .env
+    volumes:
+      - .aws:/home/celeryuser/.aws
+    networks:
+      - celery_worker_network
+      - db_network
+      - shared_network
+    healthcheck:
+      test: [ "CMD", "pgrep", "celery" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      - web
+      - redis
+    restart: unless-stopped
+    mem_limit: 512m
+
+  flower:
+    container_name: "dksh_datahub_monitoring_app"
+    user: celeryuser
+    build:
+      context: .
+      dockerfile: flower_Dockerfile
+    labels:
+      tag: "monitoring_app"
+    env_file:
+      - .env
+    volumes:
+      - .aws:/home/celeryuser/.aws
+    command: >
+      wait-for-it ${REDIS_HOST}:${REDIS_PORT} -- 
+      celery -A celery_worker flower -E --loglevel=info --port=${FLOWER_PORT}
+    ports:
+      - ${FLOWER_PORT}:${FLOWER_PORT}
+    networks:
+      - web_network
+      - db_network
+    environment:
+      CELERY_BROKER_URL: redis://${REDIS_HOST}:${REDIS_PORT}/0
+    depends_on:
+      - web
+      - worker
+      - redis
+    restart: unless-stopped
+
+networks:
+  web_network:
+    name: web_network
+    driver: bridge
+  db_network:
+    name: db_network
+    driver: bridge
+  celery_worker_network:
+    name: celery_worker_network
+    driver: bridge
+  shared_network:
+    external: false
+
+volumes:
+  redis_data:
+    driver: local

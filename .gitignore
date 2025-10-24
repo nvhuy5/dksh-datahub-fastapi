@@ -1,0 +1,14 @@
+.env
+.aws
+.vscode
+.sonar
+coverage.xml
+*.pyc
+**/celery_logs
+**/.pytest_cache
+**/.coverage
+**/__pycache__
+.scannerwork
+# Virtual env
+venv/
+elastic-agent-*.tar.gz

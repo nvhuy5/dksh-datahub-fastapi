@@ -1,0 +1,26 @@
+FROM python:3.13-alpine3.21
+
+ENV PYTHONUNBUFFERED=1
+ENV PATH=/home/celeryuser/.local/bin:$PATH
+ENV FLOWER_UNAUTHENTICATED_API=1
+
+
+RUN apk update && apk add --no-cache bash curl
+RUN curl -k -o /usr/local/bin/wait-for-it https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh \
+    && chmod +x /usr/local/bin/wait-for-it
+
+# Create non-root user
+RUN adduser --disabled-password --gecos "" celeryuser \
+    && mkdir /app
+
+# Set working directory & install requirements as root
+WORKDIR /app
+COPY ./app/requirements.txt requirements.txt
+RUN pip3 install --upgrade pip && pip3 install --no-cache-dir -r requirements.txt
+
+# Copy source code and set permissions
+COPY ./app/fastapi_celery/ /app
+RUN chown -R celeryuser:celeryuser /app
+
+# Switch to non-root user only now
+USER celeryuser

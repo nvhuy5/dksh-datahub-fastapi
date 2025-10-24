@@ -1,0 +1,40 @@
+FROM python:3.13-alpine3.21
+
+ARG ARG_ENV
+
+ENV APP_PORT=8000
+ENV REMAP_SIGTERM="SIGQUIT"
+ENV PYTHONUNBUFFERED=1
+ENV PATH=/home/celeryuser/.local/bin:$PATH
+ENV ARG_ENV=$ARG_ENV
+
+
+RUN apk update && apk add --no-cache bash dos2unix curl
+RUN curl -k -o /usr/local/bin/wait-for-it https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh \
+    && chmod +x /usr/local/bin/wait-for-it
+
+# Create non-root user
+RUN adduser --disabled-password --gecos "" celeryuser \
+    && mkdir /app
+
+# Set working directory & install requirements as root
+WORKDIR /app
+COPY ./app/requirements.txt requirements.txt
+RUN pip3 install --upgrade pip && pip3 install --no-cache-dir -r requirements.txt
+
+# Copy source code and set permissions
+COPY ./app/fastapi_celery/ /app
+COPY ./configs/docker_start_app/fastapi.sh /app/start.sh
+
+# Replace __env__ with build ARG_ENV value
+RUN if [ -z "$ARG_ENV" ]; then echo "ERROR: ARG_ENV build arg not provided!" && exit 1; fi
+RUN ARG_ENV_LOWER=$(echo "${ARG_ENV}" | tr '[:upper:]' '[:lower:]') && \
+    sed -i "s/__env__/${ARG_ENV_LOWER}/g" /app/configs.ini
+
+RUN chown -R celeryuser:celeryuser /app
+RUN dos2unix /app/start.sh && chmod +x /app/start.sh
+
+# Switch to non-root user only now
+USER celeryuser
+
+ENTRYPOINT ["/app/start.sh"]

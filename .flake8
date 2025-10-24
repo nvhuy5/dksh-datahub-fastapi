@@ -1,0 +1,18 @@
+[flake8]
+extend-ignore =
+    E203
+max-line-length = 120
+per-file-ignores =
+    app/tests/*.py:
+        F401
+        F811
+exclude =
+    .git,
+    **/__init__.py,
+    **/__pycache__,
+    **/.pytest_cache,
+    docs/source/conf.py,
+    old,
+    build,
+    dist
+max-complexity = 25

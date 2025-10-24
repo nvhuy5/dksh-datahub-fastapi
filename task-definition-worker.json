@@ -1,0 +1,70 @@
+{
+    "family": "dksh-datahub-${ENV}-task-worker",
+    "executionRoleArn": "arn:aws:iam::${ACCOUNT_ID}:role/dksh-datahub-${ENV}-ecs-task-execution-role",
+    "networkMode": "bridge",
+    "containerDefinitions": [
+      {
+        "name": "dksh-datahub-${ENV}-worker-container",
+        "image": "${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/dksh-datahub-${ENV}-ecr-worker:${IMAGE_TAG}",
+        "portMappings": [
+          {
+            "name": "worker-service-port",
+            "containerPort": 9000,
+            "hostPort": 0,
+            "protocol": "tcp"
+          }
+        ],
+        "essential": true,
+        "secrets": [
+          {
+            "name": "BACKEND_HOST",
+            "valueFrom": "arn:aws:secretsmanager:${REGION}:${ACCOUNT_ID}:secret:dksh-datahub-${ENV}-all-internal-endpoints-${SECRET_ENDPOINT_SUFFIX}:BACKEND_HOST::"
+          },
+          {
+            "name": "BACKEND_PORT",
+            "valueFrom": "arn:aws:secretsmanager:${REGION}:${ACCOUNT_ID}:secret:dksh-datahub-${ENV}-all-internal-endpoints-${SECRET_ENDPOINT_SUFFIX}:BACKEND_PORT::"
+          },
+          {
+            "name": "REDIS_HOST",
+            "valueFrom": "arn:aws:secretsmanager:${REGION}:${ACCOUNT_ID}:secret:dksh-datahub-${ENV}-all-internal-endpoints-${SECRET_ENDPOINT_SUFFIX}:REDIS_HOST::"
+          },
+          {
+            "name": "REDIS_PORT",
+            "valueFrom": "arn:aws:secretsmanager:${REGION}:${ACCOUNT_ID}:secret:dksh-datahub-${ENV}-all-internal-endpoints-${SECRET_ENDPOINT_SUFFIX}:REDIS_PORT::"
+          },
+          {
+            "name": "JWT_SECRET_KEY",
+            "valueFrom": "arn:aws:secretsmanager:${REGION}:${ACCOUNT_ID}:secret:dksh-datahub-${ENV}-app-credentials-${SECRET_SUFFIX}:JWT_SECRET_KEY::"
+          },
+          {
+              "name": "AWS_ACCESS_KEY_ID",
+              "valueFrom": "arn:aws:secretsmanager:${REGION}:${ACCOUNT_ID}:secret:dksh-datahub-${ENV}-app-credentials-${SECRET_SUFFIX}:AWS_ACCESS_KEY::"
+          },
+          {
+              "name": "AWS_DEFAULT_REGION",
+              "valueFrom": "arn:aws:secretsmanager:${REGION}:${ACCOUNT_ID}:secret:dksh-datahub-${ENV}-app-credentials-${SECRET_SUFFIX}:AWS_REGION::"
+          },
+          {
+              "name": "AWS_SECRET_ACCESS_KEY",
+              "valueFrom": "arn:aws:secretsmanager:${REGION}:${ACCOUNT_ID}:secret:dksh-datahub-${ENV}-app-credentials-${SECRET_SUFFIX}:AWS_SECRET_KEY::"
+          }
+        ],
+        "workingDirectory": "/app",
+        "logConfiguration": {
+          "logDriver": "awslogs",
+          "options": {
+            "awslogs-group": "/ecs/dksh-datahub-${ENV}-task-worker",
+            "awslogs-region": "${REGION}",
+            "awslogs-stream-prefix": "ecs"
+          }
+        }
+      }
+    ],
+    "cpu": "256",
+    "memory": "1024",
+    "requiresCompatibilities": ["EC2"],
+    "runtimePlatform": {
+      "cpuArchitecture": "X86_64",
+      "operatingSystemFamily": "LINUX"
+    }
+  }

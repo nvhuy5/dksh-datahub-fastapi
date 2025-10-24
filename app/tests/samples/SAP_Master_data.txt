@@ -1,0 +1,33 @@
+# Table: M_Customer
+CustomerID|CustomerName|Country|Division|SalesOrg|Region|Email
+CUST001|ABC Corp|USA|Retail|S001|North|abc@abc.com
+CUST002|XYZ Ltd|Germany|Wholesale|S002|South|xyz@xyz.com
+CUST003|LMN Inc|Canada|Retail|S001|West|lmn@lmn.com
+CUST004|OPQ LLC|UK|Wholesale|S003|East|opq@opq.com
+
+# Table: M_Product
+ProductID|ProductName|Category|Price|Currency|StockStatus|Availability
+PROD001|Eye Drops|Pharma|10.50|USD|In Stock|Available
+PROD002|Vision Tablets|OTC|15.00|USD|Out of Stock|Not Available
+PROD003|Sunglasses|Fashion|25.00|EUR|In Stock|Available
+PROD004|Toothpaste|Personal Care|5.00|GBP|In Stock|Available
+
+# Table: T_OrderDetails
+OrderID|CustomerID|ProductID|Quantity|OrderDate|ShipToID
+ORD001|CUST001|PROD001|100|2025-05-01|SH001
+ORD002|CUST002|PROD003|200|2025-05-03|SH002
+ORD003|CUST003|PROD004|150|2025-05-02|SH003
+ORD004|CUST004|PROD002|50|2025-05-04|SH004
+
+# Table: M_SalesOrg
+SalesOrg|Description
+S001|Sales Org North
+S002|Sales Org South
+S003|Sales Org East
+
+# Table: M_ShipTo
+ShipToID|LocationName|Street|City|Country
+SH001|Warehouse 1|123 St|New York|USA
+SH002|Warehouse 2|456 Ave|Berlin|Germany
+SH003|Warehouse 3|789 Rd|Toronto|Canada
+SH004|Warehouse 4|101 Blvd|London|UK

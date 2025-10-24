@@ -1,0 +1,13 @@
+###
+POST https://dev-datahub.dksh.b2b.com.my/api/workflow/filter
+content-type: application/json
+accept: */*
+X-Token: RZ!=gL0bVLx+y3qiOMe::E9puV(s=q5C
+
+{
+  "filePath": "SAP_SFTP/DKSH_TW/CUSTOMER_3/FOLDER_10",
+  "fileName": "DN800018251920240708123641.csv",
+  "fileExtension": ".csv",
+  "project": "DKSH_TW",
+  "source": "SFTP"
+}

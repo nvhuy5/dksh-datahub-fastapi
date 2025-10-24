@@ -1,0 +1,84 @@
+{
+  "family": "dksh-datahub-${ENV}-task-fastapi",
+  "executionRoleArn": "arn:aws:iam::${ACCOUNT_ID}:role/dksh-datahub-${ENV}-ecs-task-execution-role",
+  "networkMode": "bridge",
+  "containerDefinitions": [
+    {
+      "name": "dksh-datahub-${ENV}-fastapi-container",
+      "image": "${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/dksh-datahub-${ENV}-ecr-fastapi:${IMAGE_TAG}",
+      "cpu": 0,
+      "portMappings": [
+        {
+          "name": "fastapi-service-port",
+          "containerPort": 8000,
+          "hostPort": 0,
+          "protocol": "tcp"
+        }
+      ],
+      "essential": true,
+      "environment": [],
+      "mountPoints": [],
+      "volumesFrom": [],
+      "secrets": [
+        {
+          "name": "REDIS_HOST",
+          "valueFrom": "arn:aws:secretsmanager:${REGION}:${ACCOUNT_ID}:secret:dksh-datahub-${ENV}-all-internal-endpoints-${SECRET_ENDPOINT_SUFFIX}:REDIS_HOST::"
+        },
+        {
+          "name": "REDIS_PORT",
+          "valueFrom": "arn:aws:secretsmanager:${REGION}:${ACCOUNT_ID}:secret:dksh-datahub-${ENV}-all-internal-endpoints-${SECRET_ENDPOINT_SUFFIX}:REDIS_PORT::"
+        },
+        {
+          "name": "JWT_SECRET_KEY",
+          "valueFrom": "arn:aws:secretsmanager:${REGION}:${ACCOUNT_ID}:secret:dksh-datahub-${ENV}-app-credentials-${SECRET_SUFFIX}:JWT_SECRET_KEY::"
+        },
+        {
+            "name": "AWS_ACCESS_KEY_ID",
+            "valueFrom": "arn:aws:secretsmanager:${REGION}:${ACCOUNT_ID}:secret:dksh-datahub-${ENV}-app-credentials-${SECRET_SUFFIX}:AWS_ACCESS_KEY::"
+        },
+        {
+            "name": "AWS_DEFAULT_REGION",
+            "valueFrom": "arn:aws:secretsmanager:${REGION}:${ACCOUNT_ID}:secret:dksh-datahub-${ENV}-app-credentials-${SECRET_SUFFIX}:AWS_REGION::"
+        },
+        {
+            "name": "AWS_SECRET_ACCESS_KEY",
+            "valueFrom": "arn:aws:secretsmanager:${REGION}:${ACCOUNT_ID}:secret:dksh-datahub-${ENV}-app-credentials-${SECRET_SUFFIX}:AWS_SECRET_KEY::"
+        }
+      ],
+      "workingDirectory": "/app",
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/dksh-datahub-${ENV}-task-fastapi",
+          "mode": "non-blocking",
+          "awslogs-create-group": "true",
+          "max-buffer-size": "25m",
+          "awslogs-region": "${REGION}",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "healthCheck": {
+          "command": [
+              "CMD-SHELL",
+              "curl -f http://localhost:8000/fastapi/api_health || exit 1"
+          ],
+          "interval": 30,
+          "timeout": 5,
+          "retries": 5,
+          "startPeriod": 30
+      },
+      "systemControls": []
+    }
+  ],
+  "volumes": [],
+  "requiresCompatibilities": [
+    "EC2"
+  ],
+  "cpu": "256",
+  "memory": "1024",
+  "runtimePlatform": {
+    "cpuArchitecture": "X86_64",
+    "operatingSystemFamily": "LINUX"
+  },
+  "enableFaultInjection": false
+}

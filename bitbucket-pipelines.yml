@@ -1,0 +1,446 @@
+image: python:3.13-alpine3.21
+
+definitions:
+  caches:
+    sonar: ~/.sonar/cache
+  steps:
+    ## Python Setup, Install Dependencies, and Test
+    - step: &python_setup_and_test
+        name: Setup Python, Install Dependencies, and Run Tests
+        caches:
+          - pip
+        script:
+          - cd app
+          - pip install -r requirements.txt
+          - pytest --cov=app/fastapi_celery --cov-report=xml
+        artifacts:
+          - app/coverage.xml
+
+    ## SonarQube Code Quality Scan
+    - step: &sonarqube_scan
+        name: Run SonarQube Scan
+        caches:
+          - sonar
+        script:
+          - pipe: sonarsource/sonarqube-scan:4.0.0
+            variables:
+              SONAR_HOST_URL: $SONAR_HOST
+              SONAR_TOKEN: $SONAR_TOKEN
+              EXTRA_ARGS: |
+                -Dsonar.branch.name=$BITBUCKET_BRANCH
+
+    ## Wait for SonarQube Quality Gate Validation
+    - step: &sonarqube_quality_gate
+        name: Wait for SonarQube Quality Gate
+        script:
+          - pipe: sonarsource/sonarqube-quality-gate:1.2.1
+            variables:
+              SONAR_HOST_URL: $SONAR_HOST
+              SONAR_TOKEN: $SONAR_TOKEN
+              EXTRA_ARGS: |
+                -Dsonar.branch.name=$BITBUCKET_BRANCH
+
+
+    ## Build and push Fastapi + Worker image to Dev ECR.
+    - step: &build_and_push_images_to_ecr_dev
+          name: Build and Push FastAPI + Worker images to ECR (DEV)
+          services:
+            - docker
+          caches:
+            - docker
+          script:
+            - export IMAGE_TAG="${BITBUCKET_COMMIT::7}"
+            - export DOCKER_BUILDKIT=1
+
+            # Build FastAPI
+            - echo "==== Building FastAPI Image ===="
+            - docker build -f fastapi_Dockerfile --build-arg ARG_ENV=dev -t dksh-datahub-dev-ecr-fastapi:$IMAGE_TAG .
+
+            # Build Worker
+            - echo "==== Building Worker Image ===="
+            - docker build -f worker_Dockerfile --build-arg ARG_ENV=dev -t dksh-datahub-dev-ecr-worker:$IMAGE_TAG .
+
+            # Push FastAPI
+            - echo "==== Pushing FastAPI Image to ECR ===="
+            - pipe: atlassian/aws-ecr-push-image:2.5.0
+              variables:
+                AWS_ACCESS_KEY_ID: $DEV_AWS_ACCESS_KEY_ID
+                AWS_SECRET_ACCESS_KEY: $DEV_AWS_SECRET_ACCESS_KEY
+                AWS_DEFAULT_REGION: 'ap-southeast-1'
+                IMAGE_NAME: 'dksh-datahub-dev-ecr-fastapi'
+                TAGS: $IMAGE_TAG
+
+            # Push Worker
+            - echo "==== Pushing Worker Image to ECR ===="
+            - pipe: atlassian/aws-ecr-push-image:2.5.0
+              variables:
+                AWS_ACCESS_KEY_ID: $DEV_AWS_ACCESS_KEY_ID
+                AWS_SECRET_ACCESS_KEY: $DEV_AWS_SECRET_ACCESS_KEY
+                AWS_DEFAULT_REGION: 'ap-southeast-1'
+                IMAGE_NAME: 'dksh-datahub-dev-ecr-worker'
+                TAGS: $IMAGE_TAG
+
+
+
+    ## Build and push Fastapi + Worker image to QA ECR.
+    - step: &build_and_push_images_to_ecr_qa
+          name: Build and Push FastAPI + Worker images to ECR (QA)
+          services:
+            - docker
+          caches:
+            - docker
+          script:
+            - export IMAGE_TAG="${BITBUCKET_COMMIT::7}"
+            - export DOCKER_BUILDKIT=1
+
+            # Build FastAPI
+            - echo "==== Building FastAPI Image ===="
+            - docker build -f fastapi_Dockerfile --build-arg ARG_ENV=qa -t dksh-datahub-qa-ecr-fastapi:$IMAGE_TAG .
+
+            # Build Worker
+            - echo "==== Building Worker Image ===="
+            - docker build -f worker_Dockerfile --build-arg ARG_ENV=qa -t dksh-datahub-qa-ecr-worker:$IMAGE_TAG .
+
+            # Push FastAPI
+            - echo "==== Pushing FastAPI Image to ECR ===="
+            - pipe: atlassian/aws-ecr-push-image:2.5.0
+              variables:
+                AWS_ACCESS_KEY_ID: $QA_AWS_ACCESS_KEY_ID
+                AWS_SECRET_ACCESS_KEY: $QA_AWS_SECRET_ACCESS_KEY
+                AWS_DEFAULT_REGION: 'ap-southeast-1'
+                IMAGE_NAME: 'dksh-datahub-qa-ecr-fastapi'
+                TAGS: $IMAGE_TAG
+
+            # Push Worker
+            - echo "==== Pushing Worker Image to ECR ===="
+            - pipe: atlassian/aws-ecr-push-image:2.5.0
+              variables:
+                AWS_ACCESS_KEY_ID: $QA_AWS_ACCESS_KEY_ID
+                AWS_SECRET_ACCESS_KEY: $QA_AWS_SECRET_ACCESS_KEY
+                AWS_DEFAULT_REGION: 'ap-southeast-1'
+                IMAGE_NAME: 'dksh-datahub-qa-ecr-worker'
+                TAGS: $IMAGE_TAG
+
+    ## Build and push Fastapi + Worker image to UAT ECR.
+    - step: &build_and_push_images_to_ecr_uat
+          name: Build and Push FastAPI + Worker images to ECR (UAT)
+          services:
+            - docker
+          caches:
+            - docker
+          script:
+            - export IMAGE_TAG="${BITBUCKET_COMMIT::7}"
+            - export DOCKER_BUILDKIT=1
+
+            # Build FastAPI
+            - echo "==== Building FastAPI Image ===="
+            - docker build -f fastapi_Dockerfile --build-arg ARG_ENV=uat -t dksh-datahub-uat-ecr-fastapi:$IMAGE_TAG .
+
+            # Build Worker
+            - echo "==== Building Worker Image ===="
+            - docker build -f worker_Dockerfile --build-arg ARG_ENV=uat -t dksh-datahub-uat-ecr-worker:$IMAGE_TAG .
+
+            # Push FastAPI
+            - echo "==== Pushing FastAPI Image to ECR ===="
+            - pipe: atlassian/aws-ecr-push-image:2.5.0
+              variables:
+                AWS_ACCESS_KEY_ID: $UAT_AWS_ACCESS_KEY_ID
+                AWS_SECRET_ACCESS_KEY: $UAT_AWS_SECRET_ACCESS_KEY
+                AWS_DEFAULT_REGION: 'ap-southeast-1'
+                IMAGE_NAME: 'dksh-datahub-uat-ecr-fastapi'
+                TAGS: $IMAGE_TAG
+
+            # Push Worker
+            - echo "==== Pushing Worker Image to ECR ===="
+            - pipe: atlassian/aws-ecr-push-image:2.5.0
+              variables:
+                AWS_ACCESS_KEY_ID: $UAT_AWS_ACCESS_KEY_ID
+                AWS_SECRET_ACCESS_KEY: $UAT_AWS_SECRET_ACCESS_KEY
+                AWS_DEFAULT_REGION: 'ap-southeast-1'
+                IMAGE_NAME: 'dksh-datahub-uat-ecr-worker'
+                TAGS: $IMAGE_TAG
+                
+    ##Deploy Fastapi + Worker to Dev ECS Cluster.
+    - step: &deploy_to_ecs_dev
+          name: Deploy FastAPI + Worker to ECS (DEV)
+          deployment: dev
+          script:
+            - export ACCOUNT_ID=130413441998
+            - export REGION=ap-southeast-1
+            - export ENV=dev
+            - export IMAGE_TAG="${BITBUCKET_COMMIT::7}"
+            - export SECRET_SUFFIX=6UUQxS
+            - export SECRET_ENDPOINT_SUFFIX=bbLU0M
+            - apk add --no-cache gettext
+            - envsubst < pipeline-notification.html > pipeline-notification-render.html
+
+            # Deploy FastAPI
+            - echo "==== Deploying FastAPI ===="
+            - envsubst < task-definition-fastapi.json > task-definition-render-fastapi.json
+            - cat task-definition-render-fastapi.json
+            - pipe: atlassian/aws-ecs-deploy:1.14.0
+              variables:
+                AWS_ACCESS_KEY_ID: $DEV_AWS_ACCESS_KEY_ID
+                AWS_SECRET_ACCESS_KEY: $DEV_AWS_SECRET_ACCESS_KEY
+                AWS_DEFAULT_REGION: 'ap-southeast-1'
+                CLUSTER_NAME: 'dksh-datahub-dev-ecs-app-cluster'
+                SERVICE_NAME: 'dksh-datahub-dev-ecs-fastapi-service'
+                TASK_DEFINITION: 'task-definition-render-fastapi.json'
+                WAIT: 'true'
+                WAIT_INTERVAL: '10'
+                WAIT_MAX_ATTEMPTS: '50'
+
+            # Deploy Worker
+            - echo "==== Deploying Worker ===="
+            - envsubst < task-definition-worker.json > task-definition-render-worker.json
+            - cat task-definition-render-worker.json
+            - pipe: atlassian/aws-ecs-deploy:1.14.0
+              variables:
+                AWS_ACCESS_KEY_ID: $DEV_AWS_ACCESS_KEY_ID
+                AWS_SECRET_ACCESS_KEY: $DEV_AWS_SECRET_ACCESS_KEY
+                AWS_DEFAULT_REGION: 'ap-southeast-1'
+                CLUSTER_NAME: 'dksh-datahub-dev-ecs-app-cluster'
+                SERVICE_NAME: 'dksh-datahub-dev-ecs-worker-service'  
+                TASK_DEFINITION: 'task-definition-render-worker.json'
+                WAIT: 'true'
+                WAIT_INTERVAL: '10'
+                WAIT_MAX_ATTEMPTS: '50'
+          after-script:
+            - |
+                if [[ $BITBUCKET_EXIT_CODE -eq 1 ]]; then
+                  echo "Failed"
+                  exit 0
+                fi
+            - pipe: atlassian/email-notify:0.13.2
+              variables:
+                USERNAME: $SES_SMTP_USER
+                PASSWORD: $SES_SMTP_PASS
+                FROM: $DEV_EMAIL_FROM
+                TO: $DEV_EMAIL_TO
+                HOST: 'email-smtp.ap-southeast-1.amazonaws.com'
+                SUBJECT: "Success - [DKSH][DEV] Pipeline Notification"
+                BODY_HTML: 'pipeline-notification-render.html'
+
+    ##Deploy Fastapi + Worker to QA ECS Cluster.
+    - step: &deploy_to_ecs_qa
+          name: Deploy FastAPI + Worker to ECS (QA)
+          deployment: qa
+          script:
+            - export ACCOUNT_ID=130413441998
+            - export REGION=ap-southeast-1
+            - export ENV=qa
+            - export IMAGE_TAG="${BITBUCKET_COMMIT::7}"
+            - export SECRET_SUFFIX=QstZ0j
+            - export SECRET_ENDPOINT_SUFFIX=fLvpOI
+            - apk add --no-cache gettext
+            - envsubst < pipeline-notification.html > pipeline-notification-render.html
+
+            # Deploy FastAPI
+            - echo "==== Deploying FastAPI ===="
+            - envsubst < task-definition-fastapi.json > task-definition-render-fastapi.json
+            - cat task-definition-render-fastapi.json
+            - pipe: atlassian/aws-ecs-deploy:1.14.0
+              variables:
+                AWS_ACCESS_KEY_ID: $QA_AWS_ACCESS_KEY_ID
+                AWS_SECRET_ACCESS_KEY: $QA_AWS_SECRET_ACCESS_KEY
+                AWS_DEFAULT_REGION: 'ap-southeast-1'
+                CLUSTER_NAME: 'dksh-datahub-qa-ecs-app-cluster'
+                SERVICE_NAME: 'dksh-datahub-qa-ecs-fastapi-service'
+                TASK_DEFINITION: 'task-definition-render-fastapi.json'
+                WAIT: 'true'
+                WAIT_INTERVAL: '10'
+                WAIT_MAX_ATTEMPTS: '50'
+
+            # Deploy Worker
+            - echo "==== Deploying Worker ===="
+            - envsubst < task-definition-worker.json > task-definition-render-worker.json
+            - cat task-definition-render-worker.json
+            - pipe: atlassian/aws-ecs-deploy:1.14.0
+              variables:
+                AWS_ACCESS_KEY_ID: $QA_AWS_ACCESS_KEY_ID
+                AWS_SECRET_ACCESS_KEY: $QA_AWS_SECRET_ACCESS_KEY
+                AWS_DEFAULT_REGION: 'ap-southeast-1'
+                CLUSTER_NAME: 'dksh-datahub-qa-ecs-app-cluster'
+                SERVICE_NAME: 'dksh-datahub-qa-ecs-worker-service'  
+                TASK_DEFINITION: 'task-definition-render-worker.json'
+                WAIT: 'true'
+                WAIT_INTERVAL: '10'
+                WAIT_MAX_ATTEMPTS: '50'
+          after-script:
+            - |
+                if [[ $BITBUCKET_EXIT_CODE -eq 1 ]]; then
+                  echo "Failed"
+                  exit 0
+                fi
+            - pipe: atlassian/email-notify:0.13.2
+              variables:
+                USERNAME: $SES_SMTP_USER
+                PASSWORD: $SES_SMTP_PASS
+                FROM: $QA_EMAIL_FROM
+                TO: $QA_EMAIL_TO
+                HOST: 'email-smtp.ap-southeast-1.amazonaws.com'
+                SUBJECT: "Success - [DKSH][QA] Pipeline Notification"
+                BODY_HTML: 'pipeline-notification-render.html'
+
+    ##Deploy Fastapi + Worker to UAT ECS Cluster.
+    - step: &deploy_to_ecs_uat
+          name: Deploy FastAPI + Worker to ECS (UAT)
+          deployment: uat
+          script:
+            - export ACCOUNT_ID=130413441998
+            - export REGION=ap-southeast-1
+            - export ENV=uat
+            - export IMAGE_TAG="${BITBUCKET_COMMIT::7}"
+            - export SECRET_SUFFIX=13gDF8
+            - export SECRET_ENDPOINT_SUFFIX=ZSYSSc
+            - apk add --no-cache gettext
+            - envsubst < pipeline-notification.html > pipeline-notification-render.html
+
+            # Deploy FastAPI
+            - echo "==== Deploying FastAPI ===="
+            - envsubst < task-definition-fastapi.json > task-definition-render-fastapi.json
+            - cat task-definition-render-fastapi.json
+            - pipe: atlassian/aws-ecs-deploy:1.14.0
+              variables:
+                AWS_ACCESS_KEY_ID: $UAT_AWS_ACCESS_KEY_ID
+                AWS_SECRET_ACCESS_KEY: $UAT_AWS_SECRET_ACCESS_KEY
+                AWS_DEFAULT_REGION: 'ap-southeast-1'
+                CLUSTER_NAME: 'dksh-datahub-uat-ecs-app-cluster'
+                SERVICE_NAME: 'dksh-datahub-uat-ecs-fastapi-service'
+                TASK_DEFINITION: 'task-definition-render-fastapi.json'
+                WAIT: 'true'
+                WAIT_INTERVAL: '10'
+                WAIT_MAX_ATTEMPTS: '50'
+
+            # Deploy Worker
+            - echo "==== Deploying Worker ===="
+            - envsubst < task-definition-worker.json > task-definition-render-worker.json
+            - cat task-definition-render-worker.json
+            - pipe: atlassian/aws-ecs-deploy:1.14.0
+              variables:
+                AWS_ACCESS_KEY_ID: $UAT_AWS_ACCESS_KEY_ID
+                AWS_SECRET_ACCESS_KEY: $UAT_AWS_SECRET_ACCESS_KEY
+                AWS_DEFAULT_REGION: 'ap-southeast-1'
+                CLUSTER_NAME: 'dksh-datahub-uat-ecs-app-cluster'
+                SERVICE_NAME: 'dksh-datahub-uat-ecs-worker-service'  
+                TASK_DEFINITION: 'task-definition-render-worker.json'
+                WAIT: 'true'
+                WAIT_INTERVAL: '10'
+                WAIT_MAX_ATTEMPTS: '50'
+          after-script:
+            - |
+                if [[ $BITBUCKET_EXIT_CODE -eq 1 ]]; then
+                  echo "Failed"
+                  exit 0
+                fi
+            - pipe: atlassian/email-notify:0.13.2
+              variables:
+                USERNAME: $SES_SMTP_USER
+                PASSWORD: $SES_SMTP_PASS
+                FROM: $UAT_EMAIL_FROM
+                TO: $UAT_EMAIL_TO
+                HOST: 'email-smtp.ap-southeast-1.amazonaws.com'
+                SUBJECT: "Success - [DKSH][UAT] Pipeline Notification"
+                BODY_HTML: 'pipeline-notification-render.html'
+
+pipelines:
+ ## Verify pull request before merge using SonarQube
+    custom:
+        manual-verify-pr:
+            - step:
+                <<: *python_setup_and_test
+                concurrency:
+                    group: "pr"
+                    cancel-in-progress: true
+            - step:
+                <<: *sonarqube_scan
+                concurrency:
+                    group: "pr"
+                    cancel-in-progress: true
+            - step:
+                <<: *sonarqube_quality_gate
+                concurrency:
+                    group: "pr"
+                    cancel-in-progress: true 
+
+ ## Deployment for Dev and QA Branches
+    branches:
+        dev:
+            - step:
+                <<: *python_setup_and_test
+                concurrency:
+                    group: "deploy-dev"
+                    cancel-in-progress: false
+            - step:
+                <<: *sonarqube_scan
+                concurrency:
+                    group: "deploy-dev"
+                    cancel-in-progress: false
+            - step:
+                <<: *sonarqube_quality_gate
+                concurrency:
+                    group: "deploy-dev"
+                    cancel-in-progress: false
+            - step:
+                <<: *build_and_push_images_to_ecr_dev
+                concurrency:
+                    group: "deploy-dev"
+                    cancel-in-progress: false
+            - step:
+                <<: *deploy_to_ecs_dev
+                concurrency:
+                    group: "deploy-dev"
+                    cancel-in-progress: false
+
+        qa:
+            - step:
+                <<: *python_setup_and_test
+                concurrency:
+                    group: "deploy-qa"
+                    cancel-in-progress: false
+            - step:
+                <<: *sonarqube_scan
+                concurrency:
+                    group: "deploy-qa"
+                    cancel-in-progress: false
+            - step:
+                <<: *sonarqube_quality_gate
+                concurrency:
+                    group: "deploy-qa"
+                    cancel-in-progress: false
+            - step:
+                <<: *build_and_push_images_to_ecr_qa
+                concurrency:
+                    group: "deploy-qa"
+                    cancel-in-progress: false
+            - step:
+                <<: *deploy_to_ecs_qa
+                concurrency:
+                    group: "deploy-qa"
+                    cancel-in-progress: false
+        uat:
+            - step:
+                <<: *python_setup_and_test
+                concurrency:
+                    group: "deploy-uat"
+                    cancel-in-progress: false
+            - step:
+                <<: *sonarqube_scan
+                concurrency:
+                    group: "deploy-uat"
+                    cancel-in-progress: false
+            - step:
+                <<: *sonarqube_quality_gate
+                concurrency:
+                    group: "deploy-uat"
+                    cancel-in-progress: false
+            - step:
+                <<: *build_and_push_images_to_ecr_uat
+                concurrency:
+                    group: "deploy-uat"
+                    cancel-in-progress: false
+            - step:
+                <<: *deploy_to_ecs_uat
+                concurrency:
+                    group: "deploy-uat"
+                    cancel-in-progress: false
