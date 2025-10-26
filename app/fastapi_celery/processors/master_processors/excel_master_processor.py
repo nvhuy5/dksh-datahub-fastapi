@@ -14,14 +14,16 @@ class ExcelMasterProcessor(excel_helper.ExcelHelper):
     and provides methods to parse the content into JSON format.
     """
 
-    def __init__(self, tracking_model: TrackingModel, source: SourceType = SourceType.S3):
+    def __init__(self, file_record: dict):
         """Initialize the Excel processor with a file path and source type.
 
         Args:
             file (Path): The path to the Excel file.
             source (SourceType, optional): The source type, defaults to SourceType.S3.
         """
-        super().__init__(tracking_model=tracking_model, source=source)
+
+        super().__init__(file_record)
+        self.file_record = file_record
         self.po_number = None
 
     def parse_file_to_json(self) -> MasterDataParsed:  # NOSONAR
@@ -63,25 +65,25 @@ class ExcelMasterProcessor(excel_helper.ExcelHelper):
                 i = next_index if table_block else i + 1
 
             return MasterDataParsed(
-                original_file_path=self.tracking_model.file_path,
+                original_file_path=self.file_record.file_path,
                 headers=headers,
-                document_type=getattr(self, "document_type", None),
+                document_type=self.file_record.document_type,
                 items=items,
                 step_status=StatusEnum.SUCCESS,
                 messages=None,
-                capacity=getattr(self, "capacity", None),
+                capacity=self.file_record.file_size,
             )
 
         except Exception as e:
             print(f"Error while parsing file to JSON: {e}")
             return MasterDataParsed(
-                original_file_path=self.tracking_model.file_path,
+                original_file_path=self.file_record.file_path,
                 headers=[],
-                document_type=getattr(self, "document_type", None),
+                document_type=self.file_record.document_type,
                 items=[],
                 step_status=StatusEnum.FAILED,
                 messages=[traceback.format_exc()],
-                capacity=getattr(self, "capacity", None),
+                capacity=self.file_record.file_size,
             )
 
     def _clean_row(self, row):

@@ -1,13 +1,11 @@
-import logging
 import traceback
-from utils import log_helpers
 from models.class_models import StatusEnum, StepOutput
 from models.tracking_models import ServiceLog, LogType
 from processors.processor_registry import ProcessorRegistry
 from processors.processor_base import logger
 
 
-async def parse_file_to_json(self, *args, **kwargs) -> StepOutput:  # pragma: no cover  # NOSONAR
+def parse_file_to_json(self, data_input, response_api, *args, **kwargs) -> StepOutput:  # pragma: no cover  # NOSONAR
     """Parses a file to JSON based on its document type and extension.
 
     Uses the appropriate processor from `POFileProcessorRegistry` or
@@ -18,13 +16,16 @@ async def parse_file_to_json(self, *args, **kwargs) -> StepOutput:  # pragma: no
         StepOutput: Parsed JSON data if successful, None otherwise.
     """
     try:
+        template_info = response_api[0].get("templateFileParse", {})
+        template_code = template_info.get("code")
 
-        # Handle document type processor for Master Data and PO Data
-        processor_instance = await ProcessorRegistry.get_processor_for_file(self)
-        json_data = processor_instance.parse_file_to_json()
+        processor_enum = ProcessorRegistry.get_processor_for_file(template_code)
+        processor_instance = processor_enum.create_instance(self.file_record)
+        data = processor_instance.parse_file_to_json()
 
         return StepOutput(
-            output=json_data,
+            data=data,
+            sub_data={},
             step_status=StatusEnum.SUCCESS,
             step_failure_message=None,
         )
@@ -41,7 +42,7 @@ async def parse_file_to_json(self, *args, **kwargs) -> StepOutput:  # pragma: no
         )
 
         return StepOutput(
-            output=None,
+            data=None,
             step_status=StatusEnum.FAILED,
             step_failure_message=[traceback.format_exc()],
         )

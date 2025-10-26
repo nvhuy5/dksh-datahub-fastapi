@@ -1,23 +1,17 @@
-# Standard Library Imports
 import json
 from utils import log_helpers
 from typing import Optional
-
-# Third-Party Imports
 import traceback
 import boto3
 from botocore.exceptions import ClientError
 import config_loader
 from models.tracking_models import ServiceLog, LogType
 
-# ===
-
-aws_region = config_loader.get_env_variable("s3_buckets", "default_region")
-
-
 # === Set up logging ===
 logger = log_helpers.get_logger("AWS Connection")
 
+# === Environment setup ===
+aws_region = config_loader.get_env_variable("s3_buckets", "default_region")
 
 # === S3 Connector using boto3 ===
 class S3Connector:
@@ -172,9 +166,7 @@ class AWSSecretsManager:
             if error_code == "ResourceNotFoundException":
                 logger.error(f"Secret not found. - error code: {error_code}")
             else:
-                logger.error(
-                    f"ClientError retrieving secret '{secret_name}': {error_code} - {e}"
-                )
+                logger.error(f"ClientError retrieving secret '{secret_name}': {error_code} - {e}")
         except Exception as e:
             logger.error(f"Error retrieving secret: {e} - {traceback.format_exc()}")
 

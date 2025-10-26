@@ -1,26 +1,16 @@
-# Third-Party Imports
 from enum import Enum
 from typing import Type
 from dataclasses import dataclass
-
-# Local Application Imports
-from models.tracking_models import TrackingModel
 from processors import file_processors, master_processors
 
 
 @dataclass
 class ProcessorMeta:
     """
-    Metadata for a file processor.
+    Metadata for a processor.
 
-    Stores configuration details for a specific file processor, including its class,
-    description, and input/output types.
-
-    Attributes:
-        cls (Type): The processor class to handle the file.
-        description (str): Description of the processor and its purpose.
-        input_type (str): Expected input file type (e.g., 'pdf', 'txt').
-        output_type (str): Output data type (e.g., 'dataframe').
+    Defines configuration for a processor class, including its type, description,
+    and expected input/output formats.
     """
 
     cls: Type
@@ -30,47 +20,36 @@ class ProcessorMeta:
 
 
 class ProcessorTemplate(Enum):
-    """Registry of file processor templates.
+    """
+    Registry of available processor templates.
 
-    Maps template names to `ProcessorMeta` instances for processing specific file
-    types (e.g., PO or master data). Provides methods to create processor instances
-    and access metadata.
+    Maps template names to `ProcessorMeta` instances and provides
+    helper methods for creating processor objects and accessing metadata.
     """
 
-    """
-    Template Registry
-    """
-
-    def create_instance(self, tracking_model: TrackingModel) -> object:
-        """Creates an instance of the processor class for the given file path.
+    def create_instance(self, file_record: dict) -> object:
+        """
+        Create a processor instance for the given file record.
 
         Args:
-            file_path (str): Path to the file to be processed.
+            file_record (dict): Metadata or info of the file to be processed.
 
         Returns:
-            object: Instance of the processor class.
+            object: An instance of the processor class.
         """
-        return self.value.cls(tracking_model)
+        return self.value.cls(file_record)
 
     @property
     def description(self) -> str:
-        """Gets the description of the processor.
-
-        Returns:
-            str: Description of the processor from its metadata.
-        """
+        """Return the processor description."""
         return self.value.description
 
     def __repr__(self) -> str:
-        """Returns a string representation of the processor.
-
-        Returns:
-            str: String in the format 'name (input_type → output_type)'.
-        """
+        """Return string representation: 'NAME (input_type → output_type)'."""
         return f"{self.name} ({self.input_type} → {self.output_type})"
 
     # ======================================================== #
-    # === Registry the template to specific file processor === #
+    # === Template registry for file processors === #
     PDF_001_TEMPLATE = ProcessorMeta(
         cls=file_processors.pdf_processor.Pdf001Template,
         description="PDF layout processor for PO template - 0C-RLBH75-K0.pdf",
@@ -219,7 +198,7 @@ class ProcessorTemplate(Enum):
     )
 
     # ================================================================== #
-    # === Registry the template to specific processor for masterdata === #
+    # === Template registry for master data processors === #
     TXT_MASTERADATA_TEMPLATE = ProcessorMeta(
         cls=master_processors.txt_master_processor.TxtMasterProcessor,
         description="TXT layout processor for metadata template",

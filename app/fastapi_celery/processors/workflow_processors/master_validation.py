@@ -195,7 +195,7 @@ class MasterValidation:
             return False
 
 
-async def masterdata_header_validation(self, input_data: StepOutput) -> StepOutput:
+async def masterdata_header_validation(self, data_input, response_api, *args, **kwargs) -> StepOutput:
     """
     Validates the header section of the input data against a provided reference schema.
 
@@ -206,17 +206,15 @@ async def masterdata_header_validation(self, input_data: StepOutput) -> StepOutp
     Returns:
         bool: True if header validation passes, False otherwise.
     """
-    valid_headers = await BEConnector(
-        ApiUrl.MASTERDATA_HEADER_VALIDATION.full_url(),
-        params={"fileName": self.file_record["file_name"]},
-    ).get()
-    master_data = MasterValidation(masterdata_json=input_data.output, tracking_model=self.tracking_model)
-    header_validation_result = master_data.header_validation(
-        header_reference=valid_headers
-    )
+    # valid_headers = await BEConnector(
+    #     ApiUrl.MASTERDATA_HEADER_VALIDATION.full_url(),
+    #     params={"fileName": self.file_record["file_name"]},
+    # ).get()
+    master_data = MasterValidation(masterdata_json=data_input.output, tracking_model=self.tracking_model)
+    header_validation_result = master_data.header_validation(header_reference=response_api)
 
     return StepOutput(
-        output=header_validation_result,
+        data=header_validation_result,
         step_status=(
             StatusEnum.SUCCESS
             if header_validation_result.step_status == StatusEnum.SUCCESS
@@ -230,7 +228,7 @@ async def masterdata_header_validation(self, input_data: StepOutput) -> StepOutp
     )
 
 
-async def masterdata_data_validation(self, input_data: StepOutput) -> StepOutput:
+async def masterdata_data_validation(self, data_input, response_api, *args, **kwargs) -> StepOutput:
     """
     Validates the data rows in the input data against a provided reference schema.
 
@@ -241,15 +239,15 @@ async def masterdata_data_validation(self, input_data: StepOutput) -> StepOutput
     Returns:
         bool: True if all data rows pass validation, False otherwise.
     """
-    valid_data = await BEConnector(
-        ApiUrl.MASTERDATA_COLUMN_VALIDATION.full_url(),
-        params={"fileName": self.file_record["file_name"]},
-    ).get()
-    master_data = MasterValidation(masterdata_json=input_data.output, tracking_model=self.tracking_model)
-    data_validation_result = master_data.data_validation(data_reference=valid_data)
+    # valid_data = await BEConnector(
+    #     ApiUrl.MASTERDATA_COLUMN_VALIDATION.full_url(),
+    #     params={"fileName": self.file_record["file_name"]},
+    # ).get()
+    master_data = MasterValidation(masterdata_json=data_input.output, tracking_model=self.tracking_model)
+    data_validation_result = master_data.data_validation(data_reference=response_api)
 
     return StepOutput(
-        output=data_validation_result,
+        data=data_validation_result,
         step_status=(
             StatusEnum.SUCCESS
             if data_validation_result.step_status == StatusEnum.SUCCESS

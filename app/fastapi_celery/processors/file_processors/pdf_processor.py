@@ -21,9 +21,8 @@ class Pdf001Template:
     PDF Processor to extract file name 0C-RLBH75-K0.pdf
     """
 
-    def __init__(self, tracking_model: TrackingModel, source: SourceType = SourceType.S3):
-        self.tracking_model = tracking_model
-        self.source = source
+    def __init__(self, file_record: dict):
+        self.file_record = file_record
         self.po_number = None
 
     def extract_metadata_from_lines(self, text_lines: List[str]) -> Dict[str, Any]:  # pragma: no cover  # NOSONAR
@@ -97,23 +96,23 @@ class Pdf001Template:
             PODataParsed: Extracted data object.
         """
         try:
-            file_object = ext_extraction.FileExtensionProcessor(
-                tracking_model=self.tracking_model,
-                source=self.source
-            )
-            capacity = file_object._get_file_capacity()
-            document_type = file_object._get_document_type()
+            # file_object = ext_extraction.FileExtensionProcessor(
+            #     tracking_model=self.tracking_model,
+            #     source=self.source
+            # )
+            # capacity = file_object._get_file_capacity()
+            # document_type = file_object._get_document_type()
 
-            if file_object.source == "local":
-                doc = fitz.open(file_object.file_path)
+            if self.file_record.source_type == "local":
+                doc = fitz.open(self.file_record.file_path)
             else:
-                file_object.object_buffer.seek(0)
+                self.file_record.object_buffer.seek(0)
                 doc = fitz.open(
-                    stream=file_object.object_buffer.read(),
+                    stream=self.file_record.object_buffer.read(),
                     filetype="pdf"
                 )
 
-            logger.info(f"Start processing for file: {self.tracking_model.file_path}")
+            logger.info(f"Start processing for file: {self.file_record.file_path}")
 
             # Extract text from all pages
             full_text_lines = []
@@ -131,12 +130,12 @@ class Pdf001Template:
             self.po_number = metadata.get("訂購編號")
 
             return build_success_response(
-                self.tracking_model.file_path, document_type, self.po_number, items, metadata, capacity
+                self.file_record.file_path, self.file_record.document_type, self.po_number, items, metadata, self.file_record.file_size
             )
 
         except Exception as e:
             return build_failed_response(
-                self.tracking_model.file_path,
+                self.file_record.file_path,
                 getattr(self, "document_type", None),
                 getattr(self, "capacity", None),
                 e,
@@ -148,9 +147,8 @@ class Pdf002Template:
     PDF Processor to extract file name 0819啄木鳥A.pdf, 20240628120641957.pdf, 20240814141011543.pdf
     """
 
-    def __init__(self, tracking_model: TrackingModel, source: SourceType = SourceType.S3):
-        self.tracking_model = tracking_model
-        self.source = source
+    def __init__(self, file_record: dict):
+        self.file_record = file_record
         self.po_number = None
 
     def extract_metadata_from_lines(self, text_lines: List[str]) -> Dict[str, Any]:  # pragma: no cover  # NOSONAR
@@ -253,19 +251,19 @@ class Pdf002Template:
             PODataParsed: Extracted data object.
         """
         try:
-            file_object = ext_extraction.FileExtensionProcessor(
-                tracking_model=self.tracking_model, source=self.source
-            )
-            capacity = file_object._get_file_capacity()
-            document_type = file_object._get_document_type()
+            # file_object = ext_extraction.FileExtensionProcessor(
+            #     tracking_model=self.tracking_model, source=self.source
+            # )
+            # capacity = file_object._get_file_capacity()
+            # document_type = file_object._get_document_type()
 
             full_text_lines = []
 
-            if file_object.source == "local":
-                pdf_source = file_object.file_path
+            if self.file_record.source_type == "local":
+                pdf_source = self.file_record.file_path
             else:
-                file_object.object_buffer.seek(0)
-                pdf_source = file_object.object_buffer
+                self.file_record.object_buffer.seek(0)
+                pdf_source = self.file_record.object_buffer
 
             with pdfplumber.open(pdf_source) as pdf:
                 for page in pdf.pages:
@@ -283,12 +281,12 @@ class Pdf002Template:
             self.po_number = metadata.get("訂單編號") or metadata.get("採購單號")
 
             return build_success_response(
-                self.tracking_model.file_path, document_type, self.po_number, items, metadata, capacity
+                self.file_record.file_path, self.file_record.document_type, self.po_number, items, metadata, self.file_record.file_size
             )
 
         except Exception as e:
             return build_failed_response(
-                self.tracking_model.file_path,
+                self.file_record.file_path,
                 getattr(self, "document_type", None),
                 getattr(self, "capacity", None),
                 e,
@@ -300,9 +298,8 @@ class Pdf004Template:
     PDF Processor to extract file name 20240722102127096.pdf
     """
 
-    def __init__(self, tracking_model: TrackingModel, source: SourceType = SourceType.S3):
-        self.tracking_model = tracking_model
-        self.source = source
+    def __init__(self, file_record: dict):
+        self.file_record = file_record
         self.po_number = None
 
     def extract_metadata_from_lines(self, text_lines: List[str]) -> Dict[str, Any]:  # pragma: no cover  # NOSONAR
@@ -417,20 +414,20 @@ class Pdf004Template:
             PODataParsed: Extracted data object.
         """
         try:
-            file_object = ext_extraction.FileExtensionProcessor(
-                tracking_model=self.tracking_model,
-                source=self.source
-            )
-            capacity = file_object._get_file_capacity()
-            document_type = file_object._get_document_type()
+            # file_object = ext_extraction.FileExtensionProcessor(
+            #     tracking_model=self.tracking_model,
+            #     source=self.source
+            # )
+            # capacity = file_object._get_file_capacity()
+            # document_type = file_object._get_document_type()
 
             full_text_lines = []
 
-            if file_object.source == "local":
-                pdf_source = file_object.file_path
+            if self.file_record.source_type == "local":
+                pdf_source = self.file_record.file_path
             else:
-                file_object.object_buffer.seek(0)
-                pdf_source = file_object.object_buffer
+                self.file_record.object_buffer.seek(0)
+                pdf_source = self.file_record.object_buffer
 
             with pdfplumber.open(pdf_source) as pdf:
                 for page in pdf.pages:
@@ -446,12 +443,12 @@ class Pdf004Template:
             self.po_number = metadata.get("採購單號")
 
             return build_success_response(
-                self.tracking_model.file_path, document_type, self.po_number, items, metadata, capacity
+                self.file_record.file_path, self.file_record.document_type, self.po_number, items, metadata, self.file_record.file_size
             )
 
         except Exception as e:
             return build_failed_response(
-                self.tracking_model.file_path,
+                self.file_record.file_path,
                 getattr(self, "document_type", None),
                 getattr(self, "capacity", None),
                 e,
@@ -463,9 +460,8 @@ class Pdf006Template:
     PDF Processor for file A202405220043.pdf
     """
 
-    def __init__(self, tracking_model: TrackingModel, source: SourceType = SourceType.S3):
-        self.tracking_model = tracking_model
-        self.source = source
+    def __init__(self, file_record: dict):
+        self.file_record = file_record
         self.po_number = None
 
     def _parse_kv_line(self, line: str, metadata: dict, current_key_holder: dict):
@@ -602,20 +598,20 @@ class Pdf006Template:
         Process PDF into metadata and items using dynamic parsing.
         """
         try:
-            file_object = ext_extraction.FileExtensionProcessor(
-                tracking_model=self.tracking_model,
-                source=self.source
-            )
-            capacity = file_object._get_file_capacity()
-            document_type = file_object._get_document_type()
+            # file_object = ext_extraction.FileExtensionProcessor(
+            #     tracking_model=self.tracking_model,
+            #     source=self.source
+            # )
+            # capacity = file_object._get_file_capacity()
+            # document_type = file_object._get_document_type()
 
             full_text_lines: List[str] = []
 
-            if file_object.source == "local":
-                pdf_source = file_object.file_path
+            if self.file_record.source_type == "local":
+                pdf_source = self.file_record.file_path
             else:
-                file_object.object_buffer.seek(0)
-                pdf_source = file_object.object_buffer
+                self.file_record.object_buffer.seek(0)
+                pdf_source = self.file_record.object_buffer
 
             with pdfplumber.open(pdf_source) as pdf:
                 for page in pdf.pages:
@@ -630,12 +626,12 @@ class Pdf006Template:
             logger.info("File has been processed successfully.")
 
             return build_success_response(
-                self.tracking_model.file_path, document_type, self.po_number, items, metadata, capacity
+                self.file_record.file_path, self.file_record.document_type, self.po_number, items, metadata, self.file_record.file_size
             )
 
         except Exception as e:
             return build_failed_response(
-                self.tracking_model.file_path,
+                self.file_record.file_path,
                 getattr(self, "document_type", None),
                 getattr(self, "capacity", None),
                 e,
@@ -647,9 +643,8 @@ class Pdf007Template:
     PDF Processor to extract file name O20240620TPB026.PDF
     """
 
-    def __init__(self, tracking_model: TrackingModel, source: SourceType = SourceType.S3):
-        self.tracking_model = tracking_model
-        self.source = source
+    def __init__(self, file_record: dict):
+        self.file_record = file_record
         self.po_number = None
 
     def _extract_key_value_pairs(self, line: str) -> Dict[str, Any]:
@@ -788,19 +783,19 @@ class Pdf007Template:
             PODataParsed: Extracted data object.
         """
         try:
-            file_object = ext_extraction.FileExtensionProcessor(
-                tracking_model=self.tracking_model, source=self.source
-            )
-            capacity = file_object._get_file_capacity()
-            document_type = file_object._get_document_type()
+            # file_object = ext_extraction.FileExtensionProcessor(
+            #     tracking_model=self.tracking_model, source=self.source
+            # )
+            # capacity = file_object._get_file_capacity()
+            # document_type = file_object._get_document_type()
 
             full_text_lines = []
 
-            if file_object.source == "local":
-                pdf_source = file_object.file_path
+            if self.file_record.source_type == "local":
+                pdf_source = self.file_record.file_path
             else:
-                file_object.object_buffer.seek(0)
-                pdf_source = file_object.object_buffer
+                self.file_record.object_buffer.seek(0)
+                pdf_source = self.file_record.object_buffer
 
             with pdfplumber.open(pdf_source) as pdf:
                 for page in pdf.pages:
@@ -815,12 +810,12 @@ class Pdf007Template:
             self.po_number = items[0].get("請購明細單號")
 
             return build_success_response(
-                self.tracking_model.file_path, document_type, self.po_number, items, metadata, capacity
+                self.file_record.file_path, self.file_record.document_type, self.po_number, items, metadata, self.file_record.file_size
             )
 
         except Exception as e:
             return build_failed_response(
-                self.tracking_model.file_path,
+                self.file_record.file_path,
                 getattr(self, "document_type", None),
                 getattr(self, "capacity", None),
                 e,
@@ -832,9 +827,8 @@ class Pdf008Template:
     PDF Processor to extract file name RSV_1921_M24081500290_DC3.pdf
     """
 
-    def __init__(self, tracking_model: TrackingModel, source: SourceType = SourceType.S3):
-        self.tracking_model = tracking_model
-        self.source = source
+    def __init__(self, file_record: dict):
+        self.file_record = file_record
         self.po_number = None
 
     def extract_metadata_from_lines(self, text_lines: List[str]) -> Dict[str, Any]:  # pragma: no cover  # NOSONAR
@@ -893,19 +887,19 @@ class Pdf008Template:
             PODataParsed: Extracted data object.
         """
         try:
-            file_object = ext_extraction.FileExtensionProcessor(
-                tracking_model=self.tracking_model, source=self.source
-            )
-            capacity = file_object._get_file_capacity()
-            document_type = file_object._get_document_type()
+            # file_object = ext_extraction.FileExtensionProcessor(
+            #     tracking_model=self.tracking_model, source=self.source
+            # )
+            # capacity = file_object._get_file_capacity()
+            # document_type = file_object._get_document_type()
 
             full_text_lines = []
 
-            if file_object.source == "local":
-                pdf_source = file_object.file_path
+            if self.file_record.source_type == "local":
+                pdf_source = self.file_record.file_path
             else:
-                file_object.object_buffer.seek(0)
-                pdf_source = file_object.object_buffer
+                self.file_record.object_buffer.seek(0)
+                pdf_source = self.file_record.object_buffer
 
             with pdfplumber.open(pdf_source) as pdf:
                 for page in pdf.pages:
@@ -923,12 +917,12 @@ class Pdf008Template:
             self.po_number = items[0].get("退貨單號")
 
             return build_success_response(
-                self.tracking_model.file_path, document_type, self.po_number, items, metadata, capacity
+                self.file_record.file_path, self.file_record.document_type, self.po_number, items, metadata, self.file_record.file_size
             )
 
         except Exception as e:
             return build_failed_response(
-                self.tracking_model.file_path,
+                self.file_record.file_path,
                 getattr(self, "document_type", None),
                 getattr(self, "capacity", None),
                 e,

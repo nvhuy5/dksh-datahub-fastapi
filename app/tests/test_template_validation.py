@@ -113,7 +113,7 @@ async def test_template_format_validation_success(mock_connector, sample_po_pars
     mock_connector.return_value = mock_instance
 
     step_output = StepOutput(
-        output=sample_po_parsed,
+        data=sample_po_parsed,
         step_status=StatusEnum.SUCCESS,
         step_failure_message=None
     )
@@ -137,7 +137,7 @@ async def test_template_format_validation_failed_parse_api(mock_connector, sampl
     mock_connector.return_value = mock_instance
 
     step_output = StepOutput(
-        output=sample_po_parsed,
+        data=sample_po_parsed,
         step_status=StatusEnum.SUCCESS,
         step_failure_message=None
     )
@@ -164,7 +164,7 @@ async def test_template_format_validation_schema_missing(mock_connector, sample_
     mock_connector.return_value = mock_instance
 
     step_output = StepOutput(
-        output=sample_po_parsed,
+        data=sample_po_parsed,
         step_status=StatusEnum.SUCCESS,
         step_failure_message=None
     )

@@ -53,7 +53,7 @@ async def test_template_data_mapping_success(mock_connector, sample_po_parsed):
     mock_connector.return_value = mock_instance
 
     step_output = StepOutput(
-        output=sample_po_parsed,
+        data=sample_po_parsed,
         step_status=StatusEnum.SUCCESS,
         step_failure_message=None,
     )
@@ -85,7 +85,7 @@ async def test_template_data_mapping_failed_parse_api(mock_connector, sample_po_
     mock_connector.return_value = mock_instance
 
     step_output = StepOutput(
-        output=sample_po_parsed,
+        data=sample_po_parsed,
         step_status=StatusEnum.SUCCESS,
         step_failure_message=None,
     )
@@ -112,7 +112,7 @@ async def test_template_data_mapping_failed_mapping_api(mock_connector, sample_p
     mock_connector.return_value = mock_instance
 
     step_output = StepOutput(
-        output=sample_po_parsed,
+        data=sample_po_parsed,
         step_status=StatusEnum.SUCCESS,
         step_failure_message=None,
     )
@@ -142,7 +142,7 @@ async def test_template_data_mapping_no_headers_matched(mock_connector, sample_p
     mock_connector.return_value = mock_instance
 
     step_output = StepOutput(
-        output=sample_po_parsed,
+        data=sample_po_parsed,
         step_status=StatusEnum.SUCCESS,
         step_failure_message=None,
     )

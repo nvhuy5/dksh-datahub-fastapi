@@ -1,13 +1,7 @@
-# Standard Library Imports
-import logging
 import traceback
 from typing import Dict, Any
-
-# Third-Party Imports
 from fastapi import APIRouter, status
 from fastapi.responses import JSONResponse
-
-# Local Application Imports
 from utils import log_helpers
 from models.tracking_models import ServiceLog, LogType
 

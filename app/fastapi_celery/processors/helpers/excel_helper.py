@@ -19,15 +19,14 @@ class ExcelHelper:
     and provides methods to parse the content into JSON format.
     """
 
-    def __init__(self, tracking_model: TrackingModel, source: SourceType = SourceType.S3):
+    def __init__(self, file_record: dict):
         """Initialize the Excel processor with a file path and source type.
 
         Args:
             file (Path): The path to the Excel file.
             source (SourceType, optional): The source type, defaults to SourceType.S3.
         """
-        self.tracking_model = tracking_model
-        self.source = source
+        self.file_record = file_record
         self.rows = self.read_rows()
         self.separator = METADATA_SEPARATOR
         self.po_number = None
@@ -41,23 +40,23 @@ class ExcelHelper:
         Returns:
             List[List[str]]: A list of rows, where each row is a list of strings.
         """
-        file_object = ext_extraction.FileExtensionProcessor(
-            tracking_model=self.tracking_model, source=self.source
-        )
-        file_object._extract_file_extension()
-        self.document_type = file_object._get_document_type()
-        self.capacity = file_object._get_file_capacity()
-        ext = file_object.file_extension
+        # file_object = ext_extraction.FileExtensionProcessor(
+        #     tracking_model=self.tracking_model, source=self.source
+        # )
+        # file_object._extract_file_extension()
+        # self.document_type = file_object._get_document_type()
+        # self.capacity = file_object._get_file_capacity()
+        # ext = file_object.file_extension
 
         # Load file from local or S3
-        if file_object.source == "local":
-            file_input = file_object.file_path  # this is Path
+        if self.file_record.source_type == "local":
+            file_input = self.file_record.file_path  # this is Path
         else:
-            file_object.object_buffer.seek(0)
-            file_input = BytesIO(file_object.object_buffer.read())  # this is BytesIO
+            self.file_record.object_buffer.seek(0)
+            file_input = BytesIO(self.file_record.object_buffer.read())  # this is BytesIO
 
         # Choose engine based on extension
-        if ext == ".xls":
+        if self.file_record.file_extension == ".xls":
             df_dict = pd.read_excel(
                 file_input, sheet_name=None, header=None, dtype=str, engine="xlrd"
             )

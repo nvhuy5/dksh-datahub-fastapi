@@ -17,14 +17,14 @@ class ExcelProcessor(excel_helper.ExcelHelper):
     and provides methods to parse the content into JSON format.
     """
 
-    def __init__(self, tracking_model: TrackingModel, source: SourceType = SourceType.S3):
+    def __init__(self, file_record: dict):
         """Initialize the Excel processor with a file path and source type.
 
         Args:
             file (Path): The path to the Excel file.
             source (SourceType, optional): The source type, defaults to SourceType.S3.
         """
-        super().__init__(tracking_model=tracking_model, source=source)
+        super().__init__(file_record=file_record)
         self.po_number = None
 
     def parse_file_to_json(self) -> PODataParsed:  # NOSONAR
@@ -76,7 +76,7 @@ class ExcelProcessor(excel_helper.ExcelHelper):
             else:
                 i += 1
         return PODataParsed(
-            original_file_path=self.tracking_model.file_path,
+            original_file_path=self.file_record.file_path,
             document_type=getattr(self, "document_type", None),
             po_number=self.po_number,
             items=items,

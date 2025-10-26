@@ -1,9 +1,8 @@
 import httpx
-from typing import Optional, Dict, Any
+from typing import Any
 from models.tracking_models import ServiceLog, LogType
 from utils import log_helpers
 import config_loader
-
 
 # === Set up logging ===
 logger = log_helpers.get_logger("Backend API Connection")
@@ -14,62 +13,68 @@ jwt_request = {"type": "AUTHENTICATE_DATA_WORKFLOW_CODE"}
 
 
 class BEConnector:
-    """Backend API Connector for making HTTP requests.
+    """
+    Backend API Connector for making asynchronous HTTP requests using httpx.
 
-    Initializes an HTTP client with a URL and optional body data, and provides
-    methods for sending POST, GET, and PUT requests. Logs errors during requests.
+    This class provides helper methods (POST, GET, PUT) to interact with
+    backend APIs, including automatic logging and error handling.
     """
 
     def __init__(
         self,
         api_url: str,
-        body_data: Optional[Dict[str, Any]] = None,
-        params: Optional[Dict[str, Any]] = None,
+        body_data: dict[str, Any] | None = None,
+        params: dict[str, Any] | None = None,
     ):
-        """Initialize the connector with an API URL and optional body data.
+        """
+        Initialize the connector with an API URL and optional body data.
 
         Args:
             api_url (str): The URL of the API endpoint.
-            body_data (Optional[Dict[str, Any]], optional): Data to send in the request body. Defaults to None.
-
+            body_data (dict[str, Any] | None): Data to send in the request body. Defaults to {}.
+            params (dict[str, Any] | None): Query parameters for the request. Defaults to {}.
         """
         self.api_url = api_url
         self.body_data = body_data or {}
         self.params = params or {}
-        self.metadata = {}
+        self.metadata: dict[str, Any] = {}
 
-    async def post(self) -> Optional[Dict[str, Any]]:
-        """Send a POST request to the API endpoint.
+    async def post(self) -> dict[str, Any] | None:
+        """
+        Send a POST request to the API endpoint.
 
         Returns:
-            Optional[Dict[str, Any]]: Response data under the 'data' key, or None if request fails.
+            dict[str, Any] | None: Response data under the 'data' key, or None if request fails.
         """
         return await self._request("POST")
 
-    async def get(self) -> Optional[Dict[str, Any]]:
-        """Send a GET request to the API endpoint.
+    async def get(self) -> dict[str, Any] | None:
+        """
+        Send a GET request to the API endpoint.
 
         Returns:
-            Optional[Dict[str, Any]]: Response data under the 'data' key, or None if request fails.
+            dict[str, Any] | None: Response data under the 'data' key, or None if request fails.
         """
         return await self._request("GET")
 
-    async def put(self) -> Optional[Dict[str, Any]]:
-        """Send a PUT request to the API endpoint.
+    async def put(self) -> dict[str, Any] | None:
+        """
+        Send a PUT request to the API endpoint.
 
         Returns:
-            Optional[Dict[str, Any]]: Response data under the 'data' key, or None if request fails.
+            dict[str, Any] | None: Response data under the 'data' key, or None if request fails.
         """
         return await self._request("PUT")
 
-    async def _request(self, method: str) -> Optional[Dict[str, Any]]:
-        """Send an HTTP request to the API endpoint using the specified method.
+    async def _request(self, method: str) -> dict[str, Any] | None:
+        """
+        Send an HTTP request to the API endpoint using the specified method.
 
         Args:
-            method (str): HTTP method to use ('POST', 'GET', or 'PUT').
+            method (str): HTTP method ('POST', 'GET', or 'PUT').
 
         Returns:
-            Optional[Dict[str, Any]]: Response data under the 'data' key, or None if request fails.
+            dict[str, Any] | None: Parsed response data or None on failure.
         """
         async with httpx.AsyncClient() as client:
             try:
@@ -89,7 +94,7 @@ class BEConnector:
                     "API request failed with HTTPStatusError",
                     exc_info=True,
                     extra={
-                        "service": ServiceLog.DATABASE,
+                        "service": ServiceLog.CALL_BE_API,
                         "log_type": LogType.ERROR,
                         "url": self.api_url,
                         "method": method,
@@ -106,7 +111,7 @@ class BEConnector:
                     "API request raised unexpected exception",
                     exc_info=True,
                     extra={
-                        "service": ServiceLog.DATABASE,
+                        "service": ServiceLog.CALL_BE_API,
                         "log_type": LogType.ERROR,
                         "url": self.api_url,
                         "method": method,
@@ -116,23 +121,23 @@ class BEConnector:
                         "error_message": str(e) or "No message",
                     },
                 )
-
         return None
 
-    def get_field(self, key: str) -> Optional[Any]:
+    def get_field(self, key: str) -> Any | None:
         """
-        Get a specific field from the metadata dictionary.
+        Retrieve a specific field from the metadata dictionary.
 
         Args:
-            key (str): The key of the metadata field to retrieve.
+            key (str): The metadata key to look up.
 
         Returns:
-            Optional[Any]: The value associated with the key if present, else None.
+            Any | None: The value associated with the key if present, else None.
         """
         return self.metadata.get(key)
 
     def __repr__(self) -> str:
-        """Return a string representation of the connector.
+        """
+        Return a string representation of the connector.
 
         Returns:
             str: String representation with metadata keys.

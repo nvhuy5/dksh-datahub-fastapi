@@ -25,7 +25,7 @@ class TestWriteJsonToS3Fixed(unittest.TestCase):
 
         result = write_json_to_s3.write_json_to_s3(dummy, input_data={"a": 1})
 
-        self.assertEqual(result.output, "s3://test/path.json")
+        self.assertEqual(result.data, "s3://test/path.json")
         self.assertEqual(result.step_status, StatusEnum.SUCCESS)
         self.assertIsNone(result.step_failure_message)
 
@@ -41,13 +41,13 @@ class TestWriteJsonToS3Fixed(unittest.TestCase):
         mock_write.side_effect = Exception("S3 write failed")
         result = write_json_to_s3.write_json_to_s3(dummy, input_data={"a": 1})
         self.assertEqual(result.step_status, StatusEnum.FAILED)
-        self.assertIsNone(result.output)
+        self.assertIsNone(result.data)
         self.assertIn("S3 write failed", result.step_failure_message[0])
 
     def test_write_json_to_s3_no_input_data(self):
         dummy = DummySelf()
         result = write_json_to_s3.write_json_to_s3(dummy, input_data=None)
-        self.assertIsNone(result.output)
+        self.assertIsNone(result.data)
         self.assertIsNone(result.step_status)
         self.assertIn("No input data provided", result.step_failure_message[0])
 
@@ -60,7 +60,7 @@ class TestWriteJsonToS3Fixed(unittest.TestCase):
             input_data={"key": "value"},
             customized_object_name="custom.json",
         )
-        self.assertEqual(result.output, "s3://custom/path.json")
+        self.assertEqual(result.data, "s3://custom/path.json")
         self.assertEqual(dummy.file_record["s3_key_prefix"], "process_data/test/")
 
     def test_list_all_attempt_objects_some_found(self):

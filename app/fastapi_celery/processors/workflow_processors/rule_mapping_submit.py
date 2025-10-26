@@ -1,10 +1,10 @@
 from models.class_models import StatusEnum, StepOutput
 
 
-def submit(self ,input_data: StepOutput) -> StepOutput: # pragma: no cover  # NOSONAR
+def submit(self, data_input, response_api, *args, **kwargs) -> StepOutput:
 
     return StepOutput(
-            output=input_data.output,
+            data=data_input.output,
             step_status=StatusEnum.SUCCESS,
             step_failure_message= None,
         )

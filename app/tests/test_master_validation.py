@@ -115,7 +115,7 @@ class DummySelf:
 @pytest.mark.asyncio
 async def test_masterdata_header_validation_success(masterdata_json):
     input_data = StepOutput(
-        output=masterdata_json,
+        data=masterdata_json,
         step_status=StatusEnum.SUCCESS,
         step_failure_message=None,
     )
@@ -145,7 +145,7 @@ async def test_masterdata_header_validation_success(masterdata_json):
 @pytest.mark.asyncio
 async def test_masterdata_header_validation_fail(masterdata_json):
     input_data = StepOutput(
-        output=masterdata_json,
+        data=masterdata_json,
         step_status=StatusEnum.SUCCESS,
         step_failure_message=None,
     )
@@ -177,7 +177,7 @@ async def test_masterdata_header_validation_fail(masterdata_json):
 @pytest.mark.asyncio
 async def test_masterdata_data_validation_success(masterdata_json):
     input_data = StepOutput(
-        output=masterdata_json,
+        data=masterdata_json,
         step_status=StatusEnum.SUCCESS,
         step_failure_message=None,
     )
@@ -208,7 +208,7 @@ async def test_masterdata_data_validation_success(masterdata_json):
 async def test_masterdata_data_validation_fail(masterdata_json):
     masterdata_json.items["ID"] = ["1", "x"]
     input_data = StepOutput(
-        output=masterdata_json,
+        data=masterdata_json,
         step_status=StatusEnum.SUCCESS,
         step_failure_message=None,
     )

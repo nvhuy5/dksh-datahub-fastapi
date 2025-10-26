@@ -10,7 +10,7 @@ from processors.processor_base import logger
 FAILED_PARSE_API_MSG = "Failed to call template-parse API"
 
 
-async def template_data_mapping(self, input_data: StepOutput) -> StepOutput:
+def template_data_mapping(self, data_input, response_api, *args, **kwargs) -> StepOutput:
     """
     Perform data mapping based on template mapping configuration.
     This step renames and reorders dataframe columns according to the mapping API response.
@@ -18,32 +18,15 @@ async def template_data_mapping(self, input_data: StepOutput) -> StepOutput:
 
     try:
 
-        # Step 1: Call template-parse API to get template ID
-        template_parse_resp = await BEConnector(
-            ApiUrl.WORKFLOW_TEMPLATE_PARSE.full_url(),
-            params={"workflowStepId": self.workflow_step_ids.get("TEMPLATE_FILE_PARSE")},
-        ).get()
-
-        if not template_parse_resp or not isinstance(template_parse_resp, list):
-            raise RuntimeError(FAILED_PARSE_API_MSG)
-
-        template_id = template_parse_resp[0]["templateFileParse"]["id"]
-
-        # Step 2: Call data-mapping API to get mapping configuration
-        mapping_resp = await BEConnector(
-            ApiUrl.DATA_MAPPING.full_url(),
-            params={"templateFileParseId": template_id},
-        ).get()
-
-        if not mapping_resp or "templateMappingHeaders" not in mapping_resp:
-            raise RuntimeError(f"Mapping API did not return a valid response: {mapping_resp}")
+        if not response_api or "templateMappingHeaders" not in response_api:
+            raise RuntimeError(f"Mapping API did not return a valid response: {response_api}")
 
         headers_sorted = sorted(
-            mapping_resp["templateMappingHeaders"], key=lambda x: x["order"]
+            response_api["templateMappingHeaders"], key=lambda x: x["order"]
         )
 
         # Step 3: Convert items to DataFrame
-        df = pd.DataFrame(input_data.output.items)
+        df = pd.DataFrame(data_input.data.items)
 
         # Step 4: Validate expected headers from API vs actual DataFrame columns
         expected_headers = [
@@ -60,7 +43,7 @@ async def template_data_mapping(self, input_data: StepOutput) -> StepOutput:
             )
             logger.error(error_msg)
             return StepOutput(
-                output=input_data.output.model_copy(
+                data=data_input.data.model_copy(
                     update={
                         "step_status": StatusEnum.FAILED,
                         "messages": [error_msg],
@@ -102,7 +85,7 @@ async def template_data_mapping(self, input_data: StepOutput) -> StepOutput:
             ordered_headers = [m["header"] for m in headers_sorted if m.get("header") in df.columns]
             df = df[ordered_headers]
         # Step 7: Return success output
-        updated_output = input_data.output.model_copy(
+        updated_output = data_input.data.model_copy(
             update={"items": df.to_dict(orient="records")}
         )
 
@@ -113,13 +96,14 @@ async def template_data_mapping(self, input_data: StepOutput) -> StepOutput:
             "fileLogLink": ""
         }
 
-        updated_output = updated_output.model_copy(
-            update={"data_mapping_output": data_output}
-        )
+        # updated_output = updated_output.model_copy(
+        #     update={"data_mapping_output": data_output}
+        # )
 
 
         return StepOutput(
-            output=updated_output,
+            data=updated_output,
+            sub_data={"data_output": data_output},
             step_status=StatusEnum.SUCCESS,
             step_failure_message=None,
         )
@@ -128,19 +112,19 @@ async def template_data_mapping(self, input_data: StepOutput) -> StepOutput:
         logger.error(
             f"[template_data_mapping] Failed to map data: {e}!\n",
             extra={
-                "service": ServiceLog.MAPPING,
+                "service": ServiceLog.DATA_MAPPING,
                 "log_type": LogType.ERROR,
                 "data": self.tracking_model,
             },
             exc_info=True,
         )
 
-        failed_output = input_data.output.model_copy(
+        failed_output = data_input.output.model_copy(
             update={"step_status": StatusEnum.FAILED, "messages": [str(e)]}
         )
 
         return StepOutput(
-            output=failed_output,
+            data=failed_output,
             step_status=StatusEnum.FAILED,
             step_failure_message=[traceback.format_exc()],
         )

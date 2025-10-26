@@ -38,28 +38,28 @@ class DummyOutput(BaseModel):
 
 @pytest.mark.asyncio
 async def test_inject_metadata_base_model():
-    from fastapi_celery.celery_worker.celery_task import inject_metadata_into_step_output, ContextData
+    from fastapi_celery.celery_worker.celery_task import inject_metadata_into_step_result, ContextData
 
-    step_result = StepOutput(output=DummyOutput(value=42),
+    step_result = StepOutput(data=DummyOutput(value=42),
                              step_status=StatusEnum.SUCCESS,
                              step_failure_message=[])
     context_data = ContextData(request_id="req_3")
     context_data.step_detail = ["dummy"]
     context_data.workflow_detail = "wf"
-    inject_metadata_into_step_output(step_result, context_data, DocumentType.MASTER_DATA)
-    assert hasattr(step_result.output, "step_detail")
+    inject_metadata_into_step_result(step_result, context_data, DocumentType.MASTER_DATA)
+    assert hasattr(step_result.data, "step_detail")
 
 
 @pytest.mark.asyncio
 async def test_inject_metadata_none_output():
-    from fastapi_celery.celery_worker.celery_task import inject_metadata_into_step_output, ContextData
+    from fastapi_celery.celery_worker.celery_task import inject_metadata_into_step_result, ContextData
 
-    step_result = StepOutput(output=None, step_status=StatusEnum.SUCCESS, step_failure_message=[])
+    step_result = StepOutput(data=None, step_status=StatusEnum.SUCCESS, step_failure_message=[])
     context_data = ContextData(request_id="req_4")
     context_data.step_detail = ["dummy"]
     context_data.workflow_detail = "wf"
-    inject_metadata_into_step_output(step_result, context_data, DocumentType.MASTER_DATA)
-    assert step_result.output is None
+    inject_metadata_into_step_result(step_result, context_data, DocumentType.MASTER_DATA)
+    assert step_result.data is None
 
 
 @pytest.mark.asyncio
@@ -67,7 +67,7 @@ async def test_inject_metadata_dict_missing_output():
     """Test dict output without json_data.output"""
     from fastapi_celery.celery_worker import celery_task
     step_result = StepOutput(
-        output={"json_data": {}},
+        data={"json_data": {}},
         step_status=StatusEnum.SUCCESS,
         step_failure_message=[]
     )
@@ -76,7 +76,7 @@ async def test_inject_metadata_dict_missing_output():
     context_data.workflow_detail = "wf"
 
     with patch.object(celery_task.logger, "warning") as mock_warn:
-        celery_task.inject_metadata_into_step_output(
+        celery_task.inject_metadata_into_step_result(
             step_result, context_data, DocumentType.MASTER_DATA
         )
 
@@ -91,7 +91,7 @@ async def test_inject_metadata_unsupported_type():
     """Test unsupported output type"""
     from fastapi_celery.celery_worker import celery_task
     step_result = StepOutput(
-        output=["invalid"],
+        data=["invalid"],
         step_status=StatusEnum.SUCCESS,
         step_failure_message=[]
     )
@@ -100,7 +100,7 @@ async def test_inject_metadata_unsupported_type():
     context_data.workflow_detail = "wf"
 
     with patch.object(celery_task.logger, "warning") as mock_warn:
-        celery_task.inject_metadata_into_step_output(
+        celery_task.inject_metadata_into_step_result(
             step_result, context_data, DocumentType.ORDER
         )
 
@@ -111,20 +111,20 @@ async def test_inject_metadata_unsupported_type():
 
 @pytest.mark.asyncio
 async def test_inject_metadata_dict_with_output(monkeypatch):
-    from fastapi_celery.celery_worker.celery_task import inject_metadata_into_step_output, ContextData
+    from fastapi_celery.celery_worker.celery_task import inject_metadata_into_step_result, ContextData
     class DummyParsed(BaseModel):
         x: int = 1
         def model_copy(self, update=None): return self
     monkeypatch.setattr(celery_task.template_helper, "parse_data", lambda **_: DummyParsed())
 
-    step_result = StepOutput(output={"json_data": {"output": {"x": 1}}},
+    step_result = StepOutput(data={"json_data": {"output": {"x": 1}}},
                              step_status=StatusEnum.SUCCESS,
                              step_failure_message=[])
     context_data = ContextData(request_id="req_7")
     context_data.step_detail = ["dummy"]
     context_data.workflow_detail = "wf"
-    inject_metadata_into_step_output(step_result, context_data, DocumentType.ORDER)
-    assert isinstance(step_result.output, DummyParsed)
+    inject_metadata_into_step_result(step_result, context_data, DocumentType.ORDER)
+    assert isinstance(step_result.data, DummyParsed)
 
 
 # === handle_task success ===
@@ -156,7 +156,7 @@ async def test_handle_task_success(mock_redis, mock_processor, mock_finish, mock
 
     class FakeOutput:
         def model_copy(self, update=None): return self
-    mock_exec.return_value = StepOutput(output=FakeOutput(),
+    mock_exec.return_value = StepOutput(data=FakeOutput(),
                                         step_status=StatusEnum.SUCCESS,
                                         step_failure_message=[])
 
@@ -241,7 +241,7 @@ async def test_call_workflow_step_finish_with_xml(mock_conn):
     ctx.step_detail = [step_detail]
     mock_inst = mock_conn.return_value
     mock_inst.post = AsyncMock(return_value={"ok": True})
-    step_result = StepOutput(step_status=StatusEnum.SUCCESS, step_failure_message=[], output=None)
+    step_result = StepOutput(step_status=StatusEnum.SUCCESS, step_failure_message=[], data=None)
     res = await call_workflow_step_finish(ctx, step, step_result)
     assert res == {"ok": True}
 
@@ -276,7 +276,7 @@ async def test_call_workflow_step_finish_with_build_data_output(mock_build_data_
     step_result = StepOutput(
         step_status=StatusEnum.SUCCESS,
         step_failure_message=[],
-        output=None
+        data=None
     )
  
     # --- Call the target function ---

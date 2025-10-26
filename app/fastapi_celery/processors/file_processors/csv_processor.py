@@ -1,10 +1,8 @@
-import csv
 import io
+import csv
 import chardet
 from typing import List, Optional, Tuple
-from models.tracking_models import TrackingModel
-from utils import ext_extraction
-from models.class_models import PODataParsed, SourceType, StatusEnum
+from models.class_models import PODataParsed, StatusEnum
 import config_loader
 
 METADATA_SEPARATOR = config_loader.get_env_variable("METADATA_SEPARATOR", "：")
@@ -14,15 +12,14 @@ METADATA_SEPARATOR = config_loader.get_env_variable("METADATA_SEPARATOR", "：")
 class CSVProcessor:
     """Processor for handling CSV PO template."""
 
-    def __init__(self, tracking_model: TrackingModel, source: SourceType = SourceType.S3):
+    def __init__(self, file_record: dict):
         """Initialize with CSV file path and source type.
 
         Args:
             file_path (Path): The path to the CSV file.
             source (SourceType, optional): The source type, defaults to SourceType.S3.
         """
-        self.tracking_model = tracking_model
-        self.source = source
+        self.file_record = file_record
         self.po_number = None
         self.rows = self.load_csv_rows()
 
@@ -32,19 +29,15 @@ class CSVProcessor:
         Returns:
             list: A list of non-empty rows from the CSV file.
         """
-        file_object = ext_extraction.FileExtensionProcessor(
-            tracking_model=self.tracking_model, source=self.source
-        )
-        file_object._extract_file_extension()
-        self.document_type = file_object._get_document_type()
-        self.capacity = file_object._get_file_capacity()
+        self.document_type = self.file_record.document_type
+        self.file_size = self.file_record.file_size
 
-        if file_object.source == "local":
-            with open(file_object.file_path, "rb") as csv_file:
+        if self.file_record.source_type == "local":
+            with open(self.file_record.file_path, "rb") as csv_file:
                 content = csv_file.read()
         else:
-            file_object.object_buffer.seek(0)
-            content = file_object.object_buffer.read()
+            self.file_record.object_buffer.seek(0)
+            content = self.file_record.object_buffer.read()
 
         detected = chardet.detect(content)
         encoding = detected["encoding"] or "utf-8"
@@ -104,14 +97,14 @@ class CSVProcessor:
             items.extend(block)
 
         return PODataParsed(
-            original_file_path=self.tracking_model.file_path,
+            original_file_path=self.file_record.file_path,
             document_type=self.document_type,
             po_number=self.po_number,
             items=items,
             step_status = StatusEnum.SUCCESS,
             messages=None,
             metadata=metadata,
-            capacity=self.capacity,
+            capacity=self.file_size,
         )
 
     def _parse_metadata_rows(self, start_index: int) -> Tuple[dict, int]:

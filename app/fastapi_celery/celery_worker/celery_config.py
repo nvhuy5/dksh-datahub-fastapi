@@ -1,7 +1,7 @@
-# Third-Party Imports
 from celery import Celery
 import config_loader
 
+# Create celery_app
 celery_app = Celery("File Processor")
 
 # Celery configuration

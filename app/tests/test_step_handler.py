@@ -189,7 +189,7 @@ async def test_execute_step_basic(mock_be_connector, mock_get_context_api):
 
     step_handler.PROCESS_DEFINITIONS["STEP1"] = step_def
     file_processor.func = AsyncMock(
-        return_value=StepOutput(step_status=StatusEnum.SUCCESS, step_failure_message=[], output=None)
+        return_value=StepOutput(step_status=StatusEnum.SUCCESS, step_failure_message=[], data=None)
     )
 
     mock_get_context_api.return_value = None
@@ -224,7 +224,7 @@ async def test_execute_step_skip_if_s3_exists():
     file_processor.tracking_model = MagicMock()
     file_processor.workflow_step_ids = {"STEP1": "step_1"}
     file_processor.check_step_result_exists_in_s3 = MagicMock(
-        return_value=StepOutput(step_status="1", step_failure_message=[], output=None)
+        return_value=StepOutput(step_status="1", step_failure_message=[], data=None)
     )
 
     step = MagicMock()
@@ -282,7 +282,7 @@ async def test_execute_step_with_extract_to():
     async def fake_func(*args, **kwargs):
         class DummyOutput:
             value = 123
-        return StepOutput(step_status=StatusEnum.SUCCESS, step_failure_message=[], output=DummyOutput())
+        return StepOutput(step_status=StatusEnum.SUCCESS, step_failure_message=[], data=DummyOutput())
 
     file_processor.func = fake_func
     result = await step_handler.execute_step(file_processor, context_data, step)

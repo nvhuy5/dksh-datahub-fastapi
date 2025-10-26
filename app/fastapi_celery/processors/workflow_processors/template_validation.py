@@ -140,76 +140,49 @@ class TemplateValidation:
             "data": self.tracking_model,
         }
  
-async def template_format_validation(self, input_data: StepOutput) -> StepOutput:
-    # Step 1: call template-parse API
-    template_parse_resp = await BEConnector(
-        ApiUrl.WORKFLOW_TEMPLATE_PARSE.full_url(),
-        params={"workflowStepId": self.workflow_step_ids.get("TEMPLATE_FILE_PARSE")},
-    ).get()
- 
-    if not template_parse_resp or not isinstance(template_parse_resp, list):
-        logger.error(
-            "Failed to call template-parse API",
-            extra={
-                "service": ServiceLog.VALIDATION,
-                "log_type": LogType.ERROR,
-                "data": self.tracking_model,
-            },
-        )
-        failed_output = input_data.output.model_copy(
-            update={"step_status": StatusEnum.FAILED, "messages": ["Failed to call template-parse API"]}
-        )
-        return StepOutput(
-            output=failed_output,
-            step_status=StatusEnum.FAILED,
-            step_failure_message=failed_output.messages,
-        )
- 
-    template_id = template_parse_resp[0]["templateFileParse"]["id"]
- 
-    # Step 2: call template-format-validation API
-    format_validation_full_url = f"{ApiUrl.TEMPLATE_FORMAT_VALIDATION.full_url()}/{template_id}"
-    validate_resp = await BEConnector(format_validation_full_url).get()
- 
+def template_format_validation(self, data_input, response_api, *args, **kwargs) -> StepOutput:
+
     schema_columns = []
-    if isinstance(validate_resp, dict):
-        if "data" in validate_resp and isinstance(validate_resp["data"], dict):
-            schema_columns = validate_resp["data"].get("columns", [])
-        elif "columns" in validate_resp:
-            schema_columns = validate_resp.get("columns", [])
+    if isinstance(response_api, dict):
+        if "data" in response_api and isinstance(response_api["data"], dict):
+            schema_columns = response_api["data"].get("columns", [])
+        elif "columns" in response_api:
+            schema_columns = response_api.get("columns", [])
  
     if not schema_columns:
         logger.error(
             "Schema columns not found in API response",
             extra={
-                "service": ServiceLog.VALIDATION,
+                "service": ServiceLog.DATA_VALIDATION,
                 "log_type": LogType.ERROR,
                 "data": self.tracking_model,
             },
         )
-        failed_output = input_data.output.model_copy(
+        failed_output = data_input.data.model_copy(
             update={"step_status": StatusEnum.FAILED, "messages": ["Schema columns not found in API response"]}
         )
         return StepOutput(
-            output=failed_output,
+            data=failed_output,
+            sub_data={},
             step_status=StatusEnum.FAILED,
             step_failure_message=failed_output.messages,
         )
  
     # Step 3: run validation
-    po_validation = TemplateValidation(po_json=input_data.output, tracking_model=self.tracking_model)
+    po_validation = TemplateValidation(po_json=data_input.data, tracking_model=self.tracking_model)
     validation_result, data_output = po_validation.data_validation(schema_columns=schema_columns)
  
     # Step 4: Store data_output in validation_result for later use
     # Add validation_stats as a new attribute if PODataParsed supports it
     # Or use model_copy if it has a suitable field
-    validation_result_with_stats = validation_result.model_copy(
-        update={"validation_stats": data_output} 
-    )
+    # validation_result_with_stats = validation_result.model_copy(
+    #     update={"validation_stats": data_output} 
+    # )
  
     # Step 5: wrap into StepOutput
     return StepOutput(
-        output=validation_result_with_stats,
+        data=validation_result,
+        sub_data={"data_output": data_output},
         step_status=(
             StatusEnum.SUCCESS
             if validation_result.step_status == StatusEnum.SUCCESS

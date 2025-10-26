@@ -1,32 +1,27 @@
-from typing import Optional
 from pydantic import BaseModel
 from enum import Enum
-
 from models.class_models import FilePathRequest
 
 
 class TrackingModel(BaseModel):
     """
-    Model representing traceability context data shared across the project.
-
-    Attributes:
-        request_id (str): Unique ID to trace the request.
-        document_number (Optional[str]): Optional document number for additional context.
+    Represents traceability and context data shared across the project.
     """
 
     request_id: str
-    file_path: Optional[str] = None
-    project_name: Optional[str] = None
-    source_name: Optional[str] = None
-    workflow_id: Optional[str] = None
-    workflow_name: Optional[str] = None
-    document_number: Optional[str] = None
-    document_type: Optional[str] = None
-    sap_masterdata: Optional[bool] = None
-    rerun_attempt: Optional[int] = None
+    file_path: str | None = None
+    project_name: str | None = None
+    source_name: str | None = None
+    workflow_id: str | None = None
+    workflow_name: str | None = None
+    document_number: str | None = None
+    document_type: str | None = None
+    sap_masterdata: bool | None = None
+    rerun_attempt: int | None = None
 
     @classmethod
     def from_data_request(cls, data: FilePathRequest) -> "TrackingModel":
+        """Create a TrackingModel instance from a FilePathRequest object."""
         return cls(
             request_id=data.celery_id,
             file_path=data.file_path,
@@ -38,21 +33,24 @@ class TrackingModel(BaseModel):
 
 class ServiceLog(str, Enum):
     """
-    Enum representing the type of service or component emitting logs.
-    Used to categorize logs based on their origin within the system.
+    Identifies the service or component that emits a log.
+    Used for log source categorization.
     """
 
     API_GATEWAY = "api-gateway"
-    DATABASE = "database"
+    CALL_BE_API = "call-BE-api"
+    REDIS_SERVICE = "redis-service"
     FILE_PROCESSOR = "file-processor"
     TASK_EXECUTION = "task-execution"
+    STEP_EXECUTION = "step-execution"
     NOTIFICATION = "notification-service"
 
+    FILE_EXTRACTION = "file-extraction"
     METADATA_EXTRACTION = "metadata-extraction"
     METADATA_VALIDATION = "metadata-validation"
     DOCUMENT_PARSER = "document-parser"
-    VALIDATION = "input-validation"
-    MAPPING = "mapping"
+    DATA_VALIDATION = "data-validation"
+    DATA_MAPPING = "data-mapping"
     DATA_TRANSFORM = "data-transform"
     FILE_STORAGE = "file-storage"
 
@@ -62,12 +60,7 @@ class ServiceLog(str, Enum):
 
 class LogType(str, Enum):
     """
-    Enum representing the type of log being recorded.
-    Helps distinguish between different log purposes.
-
-    Attributes:
-        "access": Logs for normal operations, requests, etc.
-        "error": Logs for exceptions, failures, or unexpected behavior
+    Defines the type or purpose of a log entry.
     """
 
     ACCESS = "access"
